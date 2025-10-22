@@ -1,0 +1,33 @@
+{
+  "name": "idealgniter",
+  "version": "2.0.0",
+  "description": "AI-powered idea validation platform",
+  "main": "index.html",
+  "scripts": {
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "env:pull": "vercel env pull .env.local",
+    "env:add": "vercel env add",
+    "logs": "vercel logs",
+    "test": "echo \"Run 'vercel dev' to start development server\" && exit 0"
+  },
+  "keywords": [
+    "idea-validation",
+    "ai",
+    "openai",
+    "startup",
+    "innovation",
+    "business-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.67.3"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.2.14"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
