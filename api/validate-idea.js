@@ -12,6 +12,133 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+// Rate limiting configuration
+const RATE_LIMIT = {
+  maxRequests: 5,           // Max requests per window
+  windowMs: 60 * 60 * 1000, // 1 hour window
+};
+
+// In-memory rate limit store (for production, use Redis or Vercel KV)
+const rateLimitStore = new Map();
+
+/**
+ * Simple rate limiter middleware
+ * Tracks requests by IP address
+ */
+function checkRateLimit(identifier) {
+  const now = Date.now();
+  const userRequests = rateLimitStore.get(identifier) || [];
+
+  // Filter out requests outside the time window
+  const recentRequests = userRequests.filter(
+    timestamp => now - timestamp < RATE_LIMIT.windowMs
+  );
+
+  // Check if user exceeded rate limit
+  if (recentRequests.length >= RATE_LIMIT.maxRequests) {
+    const oldestRequest = Math.min(...recentRequests);
+    const resetTime = new Date(oldestRequest + RATE_LIMIT.windowMs);
+    return {
+      allowed: false,
+      remaining: 0,
+      resetTime,
+      retryAfter: Math.ceil((oldestRequest + RATE_LIMIT.windowMs - now) / 1000)
+    };
+  }
+
+  // Add current request
+  recentRequests.push(now);
+  rateLimitStore.set(identifier, recentRequests);
+
+  // Clean up old entries periodically
+  if (rateLimitStore.size > 1000) {
+    for (const [key, timestamps] of rateLimitStore.entries()) {
+      const valid = timestamps.filter(t => now - t < RATE_LIMIT.windowMs);
+      if (valid.length === 0) {
+        rateLimitStore.delete(key);
+      } else {
+        rateLimitStore.set(key, valid);
+      }
+    }
+  }
+
+  return {
+    allowed: true,
+    remaining: RATE_LIMIT.maxRequests - recentRequests.length,
+    resetTime: new Date(recentRequests[0] + RATE_LIMIT.windowMs)
+  };
+}
+
+/**
+ * Fetch GitHub repository metadata for enhanced AI analysis
+ * Uses public GitHub API (no authentication needed for public repos)
+ */
+async function fetchGitHubRepoData(repoUrl) {
+  try {
+    // Extract owner/repo from GitHub URL
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);
+    if (!match) {
+      return { error: 'Invalid GitHub URL format' };
+    }
+    
+    const [, owner, repo] = match;
+    const cleanRepo = repo.replace(/\.git$/, '');
+    
+    // Parallel fetch: repo metadata, README, and languages
+    const [repoResponse, readmeResponse, languagesResponse] = await Promise.all([
+      fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Idealgniter-App'
+        }
+      }),
+      fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/readme`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3.raw',
+          'User-Agent': 'Idealgniter-App'
+        }
+      }),
+      fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/languages`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Idealgniter-App'
+        }
+      })
+    ]);
+
+    if (!repoResponse.ok) {
+      if (repoResponse.status === 404) {
+        return { error: 'Repository not found or is private' };
+      }
+      return { error: 'Failed to fetch repository data' };
+    }
+
+    const repoData = await repoResponse.json();
+    const readmeText = readmeResponse.ok ? await readmeResponse.text() : null;
+    const languagesData = languagesResponse.ok ? await languagesResponse.json() : {};
+
+    return {
+      name: repoData.name,
+      description: repoData.description || 'No description provided',
+      stars: repoData.stargazers_count,
+      forks: repoData.forks_count,
+      watchers: repoData.watchers_count,
+      openIssues: repoData.open_issues_count,
+      primaryLanguage: repoData.language,
+      languages: Object.keys(languagesData),
+      created: repoData.created_at,
+      updated: repoData.updated_at,
+      topics: repoData.topics || [],
+      license: repoData.license?.name || 'No license',
+      readme: readmeText ? readmeText.substring(0, 2500) : null, // Limit for token management
+      url: repoData.html_url
+    };
+  } catch (error) {
+    console.error('GitHub API error:', error);
+    return { error: 'Failed to connect to GitHub API' };
+  }
+}
+
 export default async function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -23,8 +150,26 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Rate limiting check
+  const identifier = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const rateLimitResult = checkRateLimit(identifier);
+
+  // Add rate limit headers to response
+  res.setHeader('X-RateLimit-Limit', RATE_LIMIT.maxRequests);
+  res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+  res.setHeader('X-RateLimit-Reset', rateLimitResult.resetTime.toISOString());
+
+  if (!rateLimitResult.allowed) {
+    return res.status(429).json({
+      error: `Rate limit exceeded. You can make ${RATE_LIMIT.maxRequests} requests per hour. Please try again later.`,
+      type: 'rate_limit',
+      retryAfter: rateLimitResult.retryAfter,
+      resetTime: rateLimitResult.resetTime.toISOString()
+    });
+  }
+
   try {
-    const { title, description } = req.body;
+    const { title, description, githubRepo } = req.body;
 
     // Validate input
     if (!title || !description) {
@@ -39,8 +184,43 @@ export default async function handler(req, res) {
       });
     }
 
+    // Fetch GitHub repository data if URL provided
+    let repoContext = '';
+    let repoData = null;
+    
+    if (githubRepo && githubRepo.trim()) {
+      repoData = await fetchGitHubRepoData(githubRepo.trim());
+      
+      if (repoData.error) {
+        // Don't fail the request, just skip repo analysis
+        console.warn('GitHub fetch warning:', repoData.error);
+      } else {
+        repoContext = `
+
+EXISTING GITHUB REPOSITORY CONTEXT:
+Repository: ${repoData.name}
+Description: ${repoData.description}
+Primary Language: ${repoData.primaryLanguage || 'Not specified'}
+Tech Stack: ${repoData.languages.join(', ') || 'Not available'}
+Activity: ${repoData.stars} stars, ${repoData.forks} forks, ${repoData.openIssues} open issues
+Topics/Tags: ${repoData.topics.join(', ') || 'None'}
+License: ${repoData.license}
+Created: ${new Date(repoData.created).toLocaleDateString()}
+Last Updated: ${new Date(repoData.updated).toLocaleDateString()}
+
+README Summary:
+${repoData.readme || 'README not available'}
+
+INSTRUCTIONS: Analyze how the existing codebase aligns with the stated business idea. Provide specific insights about:
+1. Whether the current implementation matches the business vision
+2. Technical debt or architectural improvements needed
+3. Missing features or market opportunities based on the code
+4. Competitive advantages visible in the codebase`;
+      }
+    }
+
     // Create comprehensive prompt for OpenAI
-    const prompt = `You are an expert business analyst and startup advisor. Analyze the following business idea and provide a comprehensive validation report.
+    const prompt = `You are an expert business analyst and startup advisor. Analyze the following business idea and provide a comprehensive validation report.${repoContext}
 
 Business Idea Title: "${title}"
 Description: "${description}"
@@ -85,7 +265,7 @@ Please provide a detailed analysis in the following JSON format (respond ONLY wi
     "<immediate next step 3>"
   ],
   "estimatedTimeToMarket": "<realistic timeline estimate>",
-  "fundingRequirement": "<estimated funding needs and stage>"
+  "fundingRequirement": "<estimated funding needs and stage>"${repoContext ? ',\n  "repoAnalysis": "<3-4 sentences about how the existing GitHub codebase aligns with the business idea, technical strengths/weaknesses, and implementation recommendations>"' : ''}
 }
 
 Scoring Guidelines:
@@ -159,8 +339,12 @@ Be honest, constructive, and specific in your analysis. Focus on actionable insi
       }
     };
 
-    // Return successful response
-    return res.status(200).json(response);
+    // Return successful response with repo analysis flag
+    return res.status(200).json({
+      ...response,
+      repoAnalyzed: !!(repoData && !repoData.error),
+      repoUrl: repoData?.url || null
+    });
 
   } catch (error) {
     console.error('Error in validate-idea API:', error);

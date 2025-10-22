@@ -8,19 +8,61 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        .particle-header-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            border-radius: 1rem;
+        }
+        @media (max-width: 768px) {
+            .particle-header-container {
+                height: 200px;
+            }
+        }
+        #particleHeaderCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+        .tagline-overlay {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
-<body class="h-full flex items-center justify-center p-4">
+<body class="h-full flex items-center justify-center p-4" style="background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);">
     <div class="glass-card p-8 max-w-2xl w-full text-center">
-        <!-- Idealgniter Branding -->
-        <div class="mb-8">
-            <div class="flex items-center justify-center mb-4">
-                <div class="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-3" role="img" aria-label="Idealgniter logo">
-                    <span class="text-white text-2xl font-bold" aria-hidden="true">🌟</span>
-                </div>
-                <h1 class="text-4xl font-bold text-white">Idealgniter</h1>
+        <!-- Idealgniter Particle Header -->
+        <div class="particle-header-container">
+            <canvas id="particleHeaderCanvas" aria-label="Interactive particle effect with Idealgniter logo"></canvas>
+            <div class="tagline-overlay">
+                <p class="text-gray-200 text-sm font-medium">Ignite Innovation. Validate Success.</p>
             </div>
-            <p class="text-gray-200 text-lg font-medium">Ignite Innovation. Validate Success.</p>
+        </div>
+
+        <!-- Rate Limit & History Info Bar -->
+        <div class="mb-6 flex justify-center gap-4 text-sm">
+            <div id="rateLimitInfo" class="hidden px-3 py-1 bg-blue-500 bg-opacity-20 rounded-full text-blue-300">
+                <span id="rateLimitText"></span>
+            </div>
+            <button id="viewHistoryBtn" class="hidden px-3 py-1 bg-purple-500 bg-opacity-20 rounded-full text-purple-300 hover:bg-opacity-30 transition-colors">
+                <span>📚 View History (<span id="historyCount">0</span>)</span>
+            </button>
         </div>
         
         <!-- Main Content -->
@@ -35,6 +77,23 @@
             </button>
         </div>
         
+        <!-- History Modal -->
+        <div id="historyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="glass-card p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-white">Idea History</h3>
+                    <button id="closeHistoryBtn" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="historyList" class="space-y-4">
+                    <!-- History items will be inserted here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Idea Input Modal (hidden by default) -->
         <div id="ideaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div class="glass-card p-8 max-w-lg w-full">
@@ -45,6 +104,18 @@
                             Idea Title
                         </label>
                         <input type="text" id="ideaTitle" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors" placeholder="Enter your idea title...">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-200 text-sm font-medium mb-2" for="githubRepo">
+                            GitHub Repository <span class="text-xs text-gray-400 font-normal">(optional)</span>
+                        </label>
+                        <input type="url" id="githubRepo" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors" placeholder="https://github.com/username/repo" pattern="https://github\.com/.+/.+">
+                        <p class="text-xs text-gray-400 mt-1 flex items-start">
+                            <svg class="inline w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                            </svg>
+                            <span>Paste a GitHub repo URL for enhanced codebase analysis</span>
+                        </p>
                     </div>
                     <div class="mb-6">
                         <label class="block text-gray-200 text-sm font-medium mb-2" for="ideaDescription">
@@ -64,6 +135,7 @@
             </div>
         </div>
     </div>
+    <script src="assets/js/particle-header.js"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/app.js"></script>
 </body>
