@@ -2,7 +2,7 @@
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="description" content="Idealgniter - Turn your brilliant concept into a validated reality with AI insights and real-world feedback">
     <title>Idealgniter - Ignite Innovation. Validate Success.</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,37 +19,148 @@
             overflow: hidden;
             border-radius: 1rem;
         }
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
             .particle-header-container {
-                height: 200px;
+                height: 160px;
+                margin-bottom: 1rem;
             }
         }
-        #particleHeaderCanvas {
-            display: block;
+        @media (max-width: 375px) {
+            .particle-header-container {
+                height: 140px;
+            }
+        }
+        @media (max-width: 768px) and (orientation: landscape) {
+            .particle-header-container {
+                height: 120px;
+            }
+        }
+        .header-content {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             height: 100%;
-            touch-action: none;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            position: relative;
+            overflow: hidden;
+            gap: 1.5rem;
+            padding: 2rem;
+        }
+        .logo-icon-circle {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+        .header-logo {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-align: left;
+            margin: 0;
+            line-height: 0.9;
+        }
+        .logo-idea {
+            font-size: 3.5rem;
+            color: #ffffff;
+            display: block;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .logo-igniter {
+            font-size: 3.5rem;
+            color: #1a1a2e;
+            display: block;
+            text-shadow: 0 2px 8px rgba(255, 255, 255, 0.5);
+        }
+        @media (max-width: 640px) {
+            .header-content {
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 1rem;
+            }
+            .logo-icon-circle {
+                width: 60px;
+                height: 60px;
+                font-size: 2.5rem;
+            }
+            .header-logo {
+                text-align: center;
+            }
+            .logo-idea {
+                font-size: 2rem;
+            }
+            .logo-igniter {
+                font-size: 2rem;
+            }
+        }
+        @media (max-width: 375px) {
+            .logo-icon-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 2rem;
+            }
+            .logo-idea {
+                font-size: 1.75rem;
+            }
+            .logo-igniter {
+                font-size: 1.75rem;
+            }
         }
         .tagline-overlay {
             position: absolute;
-            bottom: 1rem;
+            bottom: 0.75rem;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             padding: 0.5rem 1.5rem;
             border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+        }
+        @media (max-width: 640px) {
+            .tagline-overlay {
+                padding: 0.375rem 1rem;
+                bottom: 0.5rem;
+            }
+            .tagline-overlay p {
+                font-size: 0.75rem;
+            }
+        }
+        @media (max-width: 375px) {
+            .tagline-overlay {
+                padding: 0.25rem 0.75rem;
+            }
+            .tagline-overlay p {
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
 <body class="h-full flex items-center justify-center p-4" style="background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);">
     <div class="glass-card p-8 max-w-2xl w-full text-center">
-        <!-- Idealgniter Particle Header -->
+        <!-- Idealgniter Header -->
         <div class="particle-header-container">
-            <canvas id="particleHeaderCanvas" aria-label="Interactive particle effect with Idealgniter logo"></canvas>
+            <div class="header-content">
+                <div class="logo-icon-circle">
+                    🔥
+                </div>
+                <h1 class="header-logo">
+                    <span class="logo-idea">IDEA</span>
+                    <span class="logo-igniter">IGNITER</span>
+                </h1>
+            </div>
             <div class="tagline-overlay">
                 <p class="text-gray-200 text-sm font-medium">Ignite Innovation. Validate Success.</p>
             </div>
@@ -78,12 +189,12 @@
         </div>
         
         <!-- History Modal -->
-        <div id="historyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div id="historyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
             <div class="glass-card p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-bold text-white">Idea History</h3>
-                    <button id="closeHistoryBtn" class="text-gray-400 hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <h3 id="historyModalTitle" class="text-2xl font-bold text-white">Idea History</h3>
+                    <button id="closeHistoryBtn" class="text-gray-400 hover:text-white transition-colors" aria-label="Close history modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
@@ -95,9 +206,9 @@
         </div>
 
         <!-- Idea Input Modal (hidden by default) -->
-        <div id="ideaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div id="ideaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="ideaModalTitle">
             <div class="glass-card p-8 max-w-lg w-full">
-                <h3 class="text-2xl font-bold text-white mb-6 text-center">Share Your Brilliant Idea</h3>
+                <h3 id="ideaModalTitle" class="text-2xl font-bold text-white mb-6 text-center">Share Your Brilliant Idea</h3>
                 <form id="ideaForm">
                     <div class="mb-4">
                         <label class="block text-gray-200 text-sm font-medium mb-2" for="ideaTitle">
@@ -135,7 +246,7 @@
             </div>
         </div>
     </div>
-    <script src="assets/js/particle-header.js"></script>
+    <script src="assets/js/share-utils.js"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/app.js"></script>
 </body>

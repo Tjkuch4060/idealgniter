@@ -129,3 +129,189 @@ body {
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.5);
 }
+
+/* ========================================
+   MOBILE OPTIMIZATIONS
+   ======================================== */
+
+/* Enhanced keyboard/focus navigation for accessibility */
+*:focus-visible {
+    outline: 3px solid #ff7e5f;
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid #ff7e5f;
+    outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Mobile-first modal and interaction improvements */
+@media (max-width: 640px) {
+    /* Increase touch target sizes for close buttons */
+    button[id*="close"] svg,
+    button[id*="cancel"] svg {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    button[id*="close"],
+    button[id*="cancel"] {
+        padding: 0.5rem;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Better modal padding on small screens */
+    #ideaModal .glass-card,
+    #historyModal .glass-card {
+        padding: 1.5rem;
+        max-height: 95vh;
+        margin: 0.5rem;
+    }
+
+    /* Larger tap targets for all buttons */
+    button {
+        min-height: 44px;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Form input improvements */
+    input[type="text"],
+    input[type="url"],
+    textarea {
+        padding: 1rem;
+        font-size: 16px; /* Prevent iOS zoom on focus */
+    }
+
+    /* Better text sizing */
+    h2 {
+        font-size: 1.75rem;
+        line-height: 2rem;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        line-height: 1.75rem;
+    }
+
+    /* Body text adjustments */
+    p.text-lg {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    /* Wider scrollbars for touch */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 12px;
+    }
+
+    /* Reduce particle container height */
+    .particle-header-container {
+        height: 160px;
+        margin-bottom: 1rem;
+    }
+
+    /* Tagline overlay text sizing */
+    .tagline-overlay {
+        padding: 0.375rem 1rem;
+    }
+
+    .tagline-overlay p {
+        font-size: 0.75rem;
+    }
+}
+
+/* Extra small screens (iPhone SE, older Android) */
+@media (max-width: 375px) {
+    /* Even more compact modals */
+    #ideaModal .glass-card,
+    #historyModal .glass-card {
+        padding: 1rem;
+    }
+
+    /* Reduce heading sizes further */
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    /* Full width buttons always */
+    button {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    /* Reduce particle header more */
+    .particle-header-container {
+        height: 140px;
+    }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+    .particle-header-container {
+        height: 120px;
+    }
+
+    #ideaModal .glass-card,
+    #historyModal .glass-card {
+        max-height: 85vh;
+    }
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+    #particleHeaderCanvas {
+        will-change: auto; /* Remove will-change on mobile to save memory */
+    }
+
+    .glass-card {
+        transform: translateZ(0); /* Force GPU acceleration */
+        backface-visibility: hidden;
+    }
+
+    .cta-button {
+        will-change: auto; /* Remove will-change hint on mobile */
+    }
+}
+
+/* Respect user's reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    /* Disable particle animation */
+    #particleHeaderCanvas {
+        display: none;
+    }
+
+    .particle-header-container {
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .particle-header-container::before {
+        content: 'IDEALGNITER 🔥';
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 900;
+        font-family: 'Poppins', sans-serif;
+        text-align: center;
+    }
+}

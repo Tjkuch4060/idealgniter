@@ -152,8 +152,14 @@ class ParticleHeader {
     }
 
     createInitialParticles(scale) {
-        // Increased particle count for better readability
-        const baseParticleCount = this.isMobile ? 4500 : 8000;
+        // Detect low-end mobile devices for better performance
+        const isLowEndDevice = this.isMobile && (
+            (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+            (navigator.deviceMemory && navigator.deviceMemory <= 4)
+        );
+
+        // Adaptive particle count based on device capabilities
+        const baseParticleCount = isLowEndDevice ? 2500 : (this.isMobile ? 3500 : 8000);
         const particleCount = Math.floor(baseParticleCount * Math.sqrt((this.canvas.width * this.canvas.height) / (1920 * 1080)));
 
         for (let i = 0; i < particleCount; i++) {
@@ -214,8 +220,12 @@ class ParticleHeader {
             }
         }
 
-        // Maintain particle count
-        const baseParticleCount = this.isMobile ? 4500 : 8000;
+        // Maintain particle count - adaptive based on device capabilities
+        const isLowEndDevice = this.isMobile && (
+            (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+            (navigator.deviceMemory && navigator.deviceMemory <= 4)
+        );
+        const baseParticleCount = isLowEndDevice ? 2500 : (this.isMobile ? 3500 : 8000);
         const targetParticleCount = Math.floor(baseParticleCount * Math.sqrt((this.canvas.width * this.canvas.height) / (1920 * 1080)));
         while (this.particles.length < targetParticleCount) {
             const newParticle = this.createParticle(scale);
@@ -226,11 +236,15 @@ class ParticleHeader {
     }
 
     setupEventListeners() {
+        // Debounced resize handler for better mobile performance
         const handleResize = () => {
-            this.updateCanvasSize();
-            const newScale = this.createTextImage();
-            this.particles = [];
-            this.createInitialParticles(newScale);
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
+                this.updateCanvasSize();
+                const newScale = this.createTextImage();
+                this.particles = [];
+                this.createInitialParticles(newScale);
+            }, 250); // Debounce 250ms
         };
 
         const handleMove = (x, y) => {

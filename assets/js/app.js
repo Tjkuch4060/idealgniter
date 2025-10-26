@@ -87,11 +87,19 @@ document.addEventListener('DOMContentLoaded', function() {
         ideaModal.classList.add('hidden');
     });
 
-    // Close modal when clicking outside
+    // Close modal when clicking outside - with mobile touch safeguards
+    let ideaModalTouchStart = null;
+    ideaModal.addEventListener('touchstart', function(e) {
+        ideaModalTouchStart = e.target;
+    }, { passive: true });
+
     ideaModal.addEventListener('click', function(e) {
-        if (e.target === ideaModal) {
+        // On touch devices, verify touch started and ended on the overlay
+        const isTouchDevice = 'ontouchstart' in window;
+        if (e.target === ideaModal && (!isTouchDevice || ideaModalTouchStart === ideaModal)) {
             ideaModal.classList.add('hidden');
         }
+        ideaModalTouchStart = null;
     });
 
     // History modal handlers
@@ -108,10 +116,19 @@ document.addEventListener('DOMContentLoaded', function() {
         historyModal.classList.add('hidden');
     });
 
+    // Close history modal when clicking outside - with mobile touch safeguards
+    let historyModalTouchStart = null;
+    historyModal.addEventListener('touchstart', function(e) {
+        historyModalTouchStart = e.target;
+    }, { passive: true });
+
     historyModal.addEventListener('click', function(e) {
-        if (e.target === historyModal) {
+        // On touch devices, verify touch started and ended on the overlay
+        const isTouchDevice = 'ontouchstart' in window;
+        if (e.target === historyModal && (!isTouchDevice || historyModalTouchStart === historyModal)) {
             historyModal.classList.add('hidden');
         }
+        historyModalTouchStart = null;
     });
 
     // Handle form submission with AI validation
@@ -436,6 +453,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     ` : ''}
                     
                     <div class="mb-4 flex flex-wrap gap-3">
+                        <button id="shareReportBtn" class="flex-1 min-w-[140px] py-2.5 px-4 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                            Share Report
+                        </button>
                         <button id="exportPdfBtn" class="flex-1 min-w-[140px] py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors text-sm flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -501,6 +524,46 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         document.addEventListener('keydown', escapeHandler);
+
+        // Share Report functionality
+        document.getElementById('shareReportBtn').addEventListener('click', async function() {
+            const button = this;
+            const originalText = button.innerHTML;
+
+            try {
+                // Generate shareable URL
+                const reportData = {
+                    title,
+                    description,
+                    insights,
+                    repoAnalyzed,
+                    repoUrl
+                };
+
+                const shareURL = ShareUtils.generateShareableURL(reportData);
+                
+                if (!shareURL) {
+                    throw new Error('Failed to generate share URL');
+                }
+
+                // Copy to clipboard
+                const copied = await ShareUtils.copyToClipboard(shareURL);
+
+                if (copied) {
+                    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Link Copied!';
+                    showSuccessNotification('Shareable link copied to clipboard!');
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to copy to clipboard');
+                }
+            } catch (error) {
+                console.error('Share error:', error);
+                showError('Failed to create share link. Please try again.');
+            }
+        });
 
         // Export to PDF functionality
         document.getElementById('exportPdfBtn').addEventListener('click', async function() {
